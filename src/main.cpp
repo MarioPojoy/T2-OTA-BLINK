@@ -1,29 +1,28 @@
 #include <Arduino.h>
-#include <WiFi.h>
+#include <ArduinoOTA.h>
+
 #if defined(ARDUINO_ESP32_DEV)    
   #include <ESPmDNS.h>
   #include <WiFiUdp.h>
-  const char* hostname = "esp32";
+  #define HOSTNAME "esp32"
 #elif defined(ARDUINO_RASPBERRY_PI_PICO_W)
   #include <ESP8266WiFi.h>
   #include <ESP8266mDNS.h>
-  const char* hostname = "picow";
+  #define HOSTNAME "picow"
 #else
   #error BOARD NOT DEFINED
 #endif
-#include <ArduinoOTA.h>
+
 #include "credentials.h"
 
 #define ledPin LED_BUILTIN
-#define interval 250
+#define interval 2000
 
-int ledState = LOW;
+bool ledState = LOW;
 unsigned long previousMillis = 0;
+const char* hostname = HOSTNAME;
 
-void setup() {
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println();
+void wifi_config () {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   
@@ -45,9 +44,10 @@ void setup() {
       delay(1000);
     }
   }
+}
 
+void ota_config () {
   ArduinoOTA.setHostname(hostname);
-
   ArduinoOTA
     .onStart([]() {
       String type;
@@ -72,11 +72,19 @@ void setup() {
       else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
       else if (error == OTA_END_ERROR) Serial.println("End Failed");
     });
-  
   ArduinoOTA.begin();
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  wifi_config();
+  ota_config();
+  
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  
   pinMode(ledPin, OUTPUT);
 }
 
